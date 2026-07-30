@@ -71,6 +71,24 @@ endpoints and counts how many were allowed:
 - `/api/check` should let **exactly 10** through, no matter how many
   concurrent requests arrive, because the Lua script guarantees no
   interleaving between requests for the same key.
+  
+ ## Results (actual test run)
+
+​```
+--- NAIVE endpoint (no Lua, GET-then-SET) ---
+Firing 30 concurrent requests for user 'testuser-fc240690' at /api/check-naive
+Allowed:  30
+Rejected: 0
+Expected allowed: 10 (bucket capacity)
+RACE CONDITION CONFIRMED: 30 requests got through, 20 more than the bucket should allow.
+
+--- ATOMIC endpoint (Lua script) ---
+Firing 30 concurrent requests for user 'testuser-8911a9f4' at /api/check
+Allowed:  10
+Rejected: 20
+Expected allowed: 10 (bucket capacity)
+Correct: exactly bucket capacity was allowed.
+​```
 
 ## What this demonstrates (for interviews)
 
