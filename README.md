@@ -73,6 +73,8 @@ endpoints and counts how many were allowed:
   interleaving between requests for the same key.
   
  ## Results (actual test run)
+ <img width="1472" height="766" alt="Screenshot 2026-07-30 173701" src="https://github.com/user-attachments/assets/15e6ee27-8590-4311-ac87-5309fa6cfd9d" />
+
 
 ​```
 --- NAIVE endpoint (no Lua, GET-then-SET) ---
@@ -89,6 +91,7 @@ Rejected: 20
 Expected allowed: 10 (bucket capacity)
 Correct: exactly bucket capacity was allowed.
 ​```
+
 
 ## What this demonstrates (for interviews)
 
