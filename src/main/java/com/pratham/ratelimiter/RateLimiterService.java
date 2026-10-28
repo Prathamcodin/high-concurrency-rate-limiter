@@ -27,14 +27,14 @@ public class RateLimiterService {
      */
     public boolean isAllowedAtomic(String userId) {
         String key = "bucket:" + userId;
-        double now = System.currentTimeMillis() / 1000.0;
 
+        // No timestamp is passed in: the script reads Redis's own clock,
+        // so every instance agrees on time (see token_bucket.lua).
         Long result = redisTemplate.execute(
                 tokenBucketScript,
                 Collections.singletonList(key),
                 String.valueOf(CAPACITY),
                 String.valueOf(REFILL_RATE),
-                String.valueOf(now),
                 "1" // requested tokens
         );
         return result != null && result == 1L;
