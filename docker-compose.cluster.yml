@@ -1,0 +1,28 @@
+# Multi-instance setup: 3 app instances behind an nginx load balancer,
+# all sharing one Redis. This is the setup the rate limiter is designed
+# for -- no instance keeps its own bucket, so the limit holds no matter
+# which instance a request lands on.
+#
+#   docker compose -f docker-compose.cluster.yml up --build -d
+#
+# The load balancer listens on 8080, so concurrency_test.py works
+# against the cluster unchanged.
+services:
+  redis:
+    image: redis:7-alpine
+
+  app:
+    build: .
+    deploy:
+      replicas: 3
+    depends_on:
+      - redis
+
+  lb:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./loadtest/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app

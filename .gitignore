@@ -1,1 +1,4 @@
 target/
+
+# k6 output
+loadtest/results/
