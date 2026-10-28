@@ -6,7 +6,7 @@ It runs as **3 Spring Boot instances behind an nginx load balancer**, and the
 limit holds no matter which instance a request lands on.
 
 Load-tested with k6 on one laptop: **11,471 req/s at 42 ms p99** across
-3 instances, and **0% over-admission** with 20,000 concurrent requests
+3 instances, and **0% over-admission** with 20,000 requests from 500 concurrent clients
 hitting the same user's bucket.
 
 ## Why these design choices
@@ -45,7 +45,7 @@ src/main/resources/
   application.properties
 loadtest/
   nginx.conf                    - round-robin load balancer config
-  hotkey.js                     - k6: thousands of concurrent requests for ONE user
+  hotkey.js                     - k6: thousands of requests for ONE user from many concurrent clients
   throughput.js                 - k6: many users, measures req/s and latency
 concurrency_test.py             - small demo: race condition exists / is fixed
 Dockerfile                      - multi-stage build (Maven -> slim JRE)
@@ -128,7 +128,7 @@ The k6 scripts in `loadtest/` run inside Docker, so nothing else needs
 installing. With the cluster running:
 
 ```bash
-# correctness under load: 5,000 concurrent requests for one user
+# correctness under load: 5,000 requests for one user from 200 concurrent clients
 docker run --rm --network high-concurrency-rate-limiter_default \
   -v "$PWD/loadtest:/scripts:ro" -v "$PWD/loadtest/results:/out" \
   grafana/k6:0.54.0 run /scripts/hotkey.js
@@ -155,17 +155,17 @@ same machine, so the scaling numbers are conservative):
 
 | Test | Result |
 |---|---|
-| 5,000 concurrent requests for one user, 200 clients, 3 instances (3 runs) | exactly **10 allowed** every run, 0% over-admission |
-| 20,000 concurrent requests for one user, 500 clients | **12 allowed** (10 tokens + 2 s of refill), 0% over-admission |
-| Same 5,000-request test on `/api/check-naive` | **924 allowed**: 913 over the limit |
+| 5,000 requests for one user from 200 concurrent clients, 3 instances (3 runs) | exactly **10 allowed** every run, 0% over-admission |
+| 20,000 requests for one user from 500 concurrent clients | **12 allowed** (10 tokens + 2 s of refill), 0% over-admission |
+| Same 5,000-request test on `/api/check-naive` (15 ms delay widens the race window) | **924 allowed**: 913 over the limit |
 | Throughput, 10,000 users, 200 clients, 30 s, **3 instances** | **11,471 req/s**, p50 15.9 ms, p99 42.0 ms, 344,177 requests, 0 errors, traffic split ~1/3 per instance |
 | Same, **1 instance** | 7,113 req/s, p99 63.9 ms |
 
 ### A second bug the load test found
 
 The first version passed each app server's clock
-(`System.currentTimeMillis()`) into the Lua script. Under 5,000 concurrent
-requests across 3 instances, the atomic endpoint admitted **17 instead of
+(`System.currentTimeMillis()`) into the Lua script. Under 5,000 requests from 200
+concurrent clients across 3 instances, the atomic endpoint admitted **17 instead of
 10**, even though the script itself was atomic.
 
 Requests reached Redis in a different order than their timestamps were
